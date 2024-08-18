@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "854344101848",
+    "firebase_url": "https://watch-master-f464b-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "watch-master-f464b",
+    "storage_bucket": "watch-master-f464b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:854344101848:android:e5ea31ad05d33352650cad",
+        "android_client_info": {
+          "package_name": "com.example.watch_master"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0zpgidk8cbuRsNpHs2vneyOF0iM-WjcM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
