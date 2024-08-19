@@ -18,6 +18,7 @@ import com.example.watch_master.FootageCard;
 import com.example.watch_master.R;
 import com.example.watch_master.SharedViewModel;
 import com.example.watch_master.databinding.FragmentHomeBinding;
+import com.example.watch_master.models.Episode;
 import com.example.watch_master.models.Movie;
 import com.example.watch_master.models.TvShow;
 import com.google.firebase.auth.FirebaseAuth;
@@ -67,7 +68,7 @@ public class HomeFragment extends Fragment {
 
 
         //if(isTvShowsLoaded = false || isMoviesLoaded == false)
-            //listText.setText("your watchlist is empty");
+        //listText.setText("your watchlist is empty");
         checkDataLoaded();
 
 
@@ -91,6 +92,35 @@ public class HomeFragment extends Fragment {
                     if (tvShow != null) {
                         tvShows.put(tvShowSnapshot.getKey(), tvShow);
                     }
+                    Log.d("TAG999999", "Episode: " + tvShow.getId());
+
+                    DatabaseReference myRefEpisode = database.getReference("checked_footage").child(userId).child("tv_shows").child(String.valueOf(tvShow.getId()));
+                    Log.d("TAG999999", "Fetching episodes for: " + tvShow.getOriginal_name());
+
+                    myRefEpisode.child("episodes").addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot episodeSnapshot) {
+                            HashMap<String, Episode> tvShowEpisodes = new HashMap<>();
+                            Log.d("TAG999999", "Episode snapshot key: " + episodeSnapshot.getKey());
+                            Log.d("TAG999999", "Episode children count: " + episodeSnapshot.getChildrenCount());
+                            for (DataSnapshot episodeDataSnapshot : episodeSnapshot.getChildren()) {
+                                Episode episode = episodeDataSnapshot.getValue(Episode.class);
+                                if (episode != null) {
+                                    tvShowEpisodes.put(episodeSnapshot.getKey(), episode);
+                                    Log.d("TAG999999", "Episode: " + episode.getName());
+                                }
+                                Log.d("TAG999999", "Episode: " + episode.getName());
+                            }
+                            tvShow.setEpisodes(tvShowEpisodes);
+                            Log.d("TAG7", "Episodes loaded " );
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    });
+
                 }
                 sharedViewModel.setSelectedTvShows(tvShows);
                 isTvShowsLoaded = true;

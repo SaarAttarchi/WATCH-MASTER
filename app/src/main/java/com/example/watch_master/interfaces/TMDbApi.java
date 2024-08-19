@@ -6,6 +6,7 @@ import com.example.watch_master.DataManager.TvShowDiscoverResponse;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 public interface TMDbApi {
@@ -13,9 +14,14 @@ public interface TMDbApi {
     @GET("/3/discover/tv")
     Call<TvShowDiscoverResponse> searchTvShow(@Query("api_key") String apiKey);
 
+
     // Fetch Episodes
-    @GET("/3/discover/tv")
-    Call<EpisodeDiscoverResponse> searchTvShowEpisode(@Query("api_key") String apiKey);
+    @GET("/3/tv/{tv_id}/season/{season_number}")
+    Call<EpisodeDiscoverResponse> searchTvShowEpisode(
+            @Path("tv_id") int showId,
+            @Path("season_number") int seasonNumber,
+            @Query("api_key") String apiKey
+    );
 
     // Fetch Movies
     @GET("/3/discover/movie")

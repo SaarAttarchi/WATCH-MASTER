@@ -52,10 +52,12 @@ public class DataManager {
         Log.d("TAG", "Request URL: " + tvShowCall.request().url());
 
 
+
         tvShowCall.enqueue(new Callback<TvShowDiscoverResponse>() {
             @Override
             public void onResponse(Call<TvShowDiscoverResponse> call, Response<TvShowDiscoverResponse> response) {
                 Log.d("TAG9", "shows onResponse:");
+                String url1 = String.valueOf(tvShowCall.request().url());
 
 
                 if (response.isSuccessful() && response.body() != null) {
@@ -74,7 +76,13 @@ public class DataManager {
                         Log.d("TAG", "show: " + show.getOriginal_name());
 
                         HashMap<String, Episode> tvShowEpisodes = new HashMap<>();
-                        fetchEpisodes(tvShow, tvShowEpisodes, apiKey);
+
+                        fetchEpisodes(tvShow, tvShowEpisodes, apiKey, new EpisodeFetchCallback() {
+                            @Override
+                            public void onEpisodesFetched(HashMap<String, Episode> episodes) {
+                                tvShow.setEpisodes(tvShowEpisodes);
+                            }
+                        });
                     }
 
                     if (callback != null) {
@@ -90,51 +98,64 @@ public class DataManager {
         });
     }
 
-    public void fetchEpisodes(TvShow tvShow, HashMap<String, Episode> tvShowEpisodes, String apiKey) {
+    public void fetchEpisodes(TvShow tvShow, HashMap<String, Episode> tvShowEpisodes, String apiKey, EpisodeFetchCallback callBack) {
         // Fetch episodes for the show
         TMDbApi apiService2 = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
-        Log.d("TAG", "Moviesdf;sjfl;kdsjflkdsjflds: " );
-        Call<EpisodeDiscoverResponse> episodeCall = apiService2.searchTvShowEpisode( apiKey);
-        Log.d("TAG16", "Request URL: " + episodeCall.request().url());
 
-        episodeCall.enqueue(new Callback<EpisodeDiscoverResponse>() {
-            @Override
-            public void onResponse(Call<EpisodeDiscoverResponse> call, Response<EpisodeDiscoverResponse> response) {
-                Log.d("TAG17", "Episodes onResponse:");
-                if (response.isSuccessful() && response.body() != null) {
-                    EpisodeDiscoverResponse episodeResponses = response.body();
-                    //Log.d("TAG", "Episodes fetched: " + episodeResponses);
+        for (int i = 1; i <= 2; i++) {
+            Call<EpisodeDiscoverResponse> episodeCall = apiService2.searchTvShowEpisode(tvShow.getId(), i, apiKey);
+            Log.d("TAG", "Request URL: " + episodeCall.request().url());
 
-                    // Extract episodes
-                    for (Episode episodeResponse : episodeResponses.getResults()) {
-                        Episode episode = new Episode()
-                                .setId(episodeResponse.getId())
-                                .setName(episodeResponse.getName())
-                                .setSeason_number(episodeResponse.getSeason_number())
-                                .setEpisode_number(episodeResponse.getEpisode_number())
-                                .setOverview(episodeResponse.getOverview())
-                                .setAir_date(episodeResponse.getAir_date())
-                                .setVote_average(episodeResponse.getVote_average())
-                                .setRuntime(episodeResponse.getRuntime());
-                        tvShowEpisodes.put(String.valueOf(episodeResponse.getId()), episode);
-                        Log.d("TAG7", "Episode: " + episodeResponse.getName());
+
+            episodeCall.enqueue(new Callback<EpisodeDiscoverResponse>() {
+                @Override
+                public void onResponse(Call<EpisodeDiscoverResponse> call, Response<EpisodeDiscoverResponse> response) {
+                    Log.d("TAG9", "shows onResponse:");
+                    String url1 = String.valueOf(episodeCall.request().url());
+
+
+                    if (response.isSuccessful() && response.body() != null) {
+                        EpisodeDiscoverResponse episodeResponses = response.body();
+
+                        Log.d("TAG", "Episodes fetched: " + episodeResponses);
+
+                        // Extract episodes
+                        for (Episode episodeResponse : episodeResponses.getEpisodes()) {
+                            //String episodeKey = "S" + episodeResponse.getSeason_number() + "E" + episodeResponse.getEpisode_number();
+                            int episodeKey =  episodeResponse.getSeason_number() * 10000 + episodeResponse.getEpisode_number();
+
+
+                            Episode episode = new Episode()
+                                    .setId(episodeResponse.getId())
+                                    .setName(episodeResponse.getName())
+                                    .setSeason_number(episodeResponse.getSeason_number())
+                                    .setEpisode_number(episodeResponse.getEpisode_number())
+                                    .setOverview(episodeResponse.getOverview())
+                                    .setAir_date(episodeResponse.getAir_date())
+                                    .setVote_average(episodeResponse.getVote_average())
+                                    .setRuntime(episodeResponse.getRuntime());
+                            tvShowEpisodes.put(String.valueOf(episodeKey), episode);
+                            Log.d("TAG7", "Episode: " + episode.getName());
+                        }
+
+                        Log.d("TAG", "show: " + tvShow.getOriginal_name());
+
+                        if (callBack != null) {
+                            callBack.onEpisodesFetched(tvShowEpisodes);
+                        }
+
+
+                    } else {
+                        Log.d("TAG7", "Episode response is unsuccessful or body is null.");
                     }
-
-                    Log.d("TAG", "show: " + tvShow.getOriginal_name());
-
-                    
-                    
-
-                } else {
-                    Log.d("TAG7", "Episode response is unsuccessful or body is null.");
                 }
-            }
 
-            @Override
-            public void onFailure(Call<EpisodeDiscoverResponse> call, Throwable t) {
-                Log.d("TAG", "Failed to fetch episodes: " + t.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Call<EpisodeDiscoverResponse> call, Throwable t) {
+                    Log.d("TAG", "Failed to fetch episodes: " + t.getMessage());
+                }
+            });
+        }
     }
 /*
 
