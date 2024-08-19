@@ -13,11 +13,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import com.example.watch_master.DataManager.DataManager;
 import com.example.watch_master.interfaces.DataFetchCallback;
 import com.example.watch_master.models.Movie;
 import com.example.watch_master.models.TvShow;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.HashMap;
 
@@ -46,6 +48,11 @@ public class AllFootageFragment extends Fragment {
 
     private RecyclerView main_LST_items;
     private SharedViewModel sharedViewModel;
+    private boolean isInAllFootage = true;
+    private String query;
+    private TextInputEditText searchBar;
+    private Button searchButton;
+    private boolean search = false;
 
 
     public AllFootageFragment() {
@@ -81,35 +88,63 @@ public class AllFootageFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        Log.d("TAG", "saveToFirebase: sasasa");
-        sharedViewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
-        Log.d("TAG2", "saveToFirebase: sasasa");
 
+
+        // creates a new sharedViewModel instance
+        sharedViewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
+
+        // creates empty hashmaps for each type and put in the FootageCard constructor
         HashMap<String, TvShow> initialTvShows = new HashMap<>();
         HashMap<String, Movie> initialMovies = new HashMap<>();
-        FootageCard footageCard = new FootageCard(initialTvShows, initialMovies, sharedViewModel, 0);
+        FootageCard footageCard = new FootageCard(initialTvShows, initialMovies, sharedViewModel,isInAllFootage);
 
-        //FootageCard footageCard = new FootageCard(DataManager.footageLibrary().getTvShows(), DataManager.footageLibrary().getMovies(), sharedViewModel);
-
-        Log.d("TAG3", "saveToFirebase: sasasa");
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
+        // find variables in the fragment
         main_LST_items = view.findViewById(R.id.main_LST_items);
-        Log.d("TAG4", "saveToFirebase: sasasa");
+        searchBar = view.findViewById(R.id.search_bar);
+        searchButton = view.findViewById(R.id.search_button);
+
+        //sets the footageCard adapter
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
+        DataManager dataFetcher = new DataManager();
+
         main_LST_items.setLayoutManager(linearLayoutManager);
 
         main_LST_items.setAdapter(footageCard);
 
-        DataManager dataFetcher = new DataManager();
-        dataFetcher.allDta(new DataFetchCallback() {
+        // get all the footage in the data base when not in search mode and show it
+        if(!search) {
+            dataFetcher.allDta(query, new DataFetchCallback() {
+                @Override
+                public void onDataFetched(HashMap<String, TvShow> tvShows, HashMap<String, Movie> movies) {
+                    footageCard.setTvShows(tvShows); // sets the tv shows
+                    footageCard.setMovies(movies); // sets the movies
+                    footageCard.notifyDataSetChanged();
+                }
+            });
+        }
+
+        //gets the search bar input and use it as query
+        searchButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onDataFetched(HashMap<String, TvShow> tvShows, HashMap<String, Movie> movies) {
-                footageCard.setTvShows(tvShows);
-                footageCard.setMovies(movies);
-                footageCard.notifyDataSetChanged();
+            public void onClick(View v) {
+                query = searchBar.getText().toString().trim();
+                if (!query.isEmpty()) {
+                    search = true;
+                    dataFetcher.allDta(query, new DataFetchCallback() {
+                        @Override
+                        public void onDataFetched(HashMap<String, TvShow> tvShows, HashMap<String, Movie> movies) {
+                            footageCard.setTvShows(tvShows);
+                            footageCard.setMovies(movies);
+                            footageCard.notifyDataSetChanged();
+                        }
+
+
+                    });
+                }
             }
-
-
         });
+//
+//
 
 
     }

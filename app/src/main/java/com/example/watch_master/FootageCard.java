@@ -15,6 +15,7 @@ import com.example.watch_master.models.Episode;
 import com.example.watch_master.models.Movie;
 import com.example.watch_master.models.TvShow;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.android.material.textview.MaterialTextView;
 
@@ -29,10 +30,10 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
     private HashMap<String,Movie> movies;
     private HashMap<String,TvShow> tvShows;
     private SharedViewModel sharedViewModel;
-    private int location;
+    private boolean location;
 
 
-    public FootageCard(HashMap<String,TvShow> tvShows, HashMap<String, Movie> movies, SharedViewModel sharedViewModel, int location) {
+    public FootageCard(HashMap<String,TvShow> tvShows, HashMap<String, Movie> movies, SharedViewModel sharedViewModel, boolean location) {
         this.tvShows = tvShows;
         this.movies = movies;
         this.sharedViewModel = sharedViewModel;
@@ -61,33 +62,25 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
         List<String> tvShowKeys = new ArrayList<>(tvShows.keySet());
         List<String> movieKeys = new ArrayList<>(movies.keySet());
 
-        if (position < tvShowKeys.size()) {
+        if (position < tvShowKeys.size()) {// gets the tv shows first form the list
             TvShow tvShow = tvShows.get(tvShowKeys.get(position));
 
             int currentEpisode = tvShow.getCurrent_episode();
             int currentSeason = tvShow.getCurrent_season();
 
+            // showing the tv show name and poster
             Log.d("ImageURLsasdsa", "URL: " + tvShow.getPoster_path());
             Glide.with(holder.itemView.getContext()).load(tvShow.getPoster_path()).placeholder(R.drawable.ic_launcher_background).centerInside().into(holder.item_picture);
             holder.item_LBL_name.setText(tvShow.getOriginal_name());
-            Log.d("TAG111", "Shows onResponse: " + tvShow.getOriginal_name());
-            Log.d("TAG222", "Shows onResponse: " + tvShow.getNumber_of_seasons());
-            Log.d("TAG222", "Shows onResponse: " + tvShow.getNumber_of_episodes());
 
 
+            if(!location) { // if the footage is shown on the user page
 
 
-            if(location == 1) {
-
-                episodeCard(tvShow, holder,currentEpisode,currentSeason, new EpisodeUpdateCallback() {
-                    @Override
-                    public void onEpisodeUpdate() {
-
-                    }
-                });
 
                 HashMap <String,Episode> episodes = tvShow.getEpisodes();
-
+                // gets the current episode and season number
+                // if the show just got added then set the season and episode to be both 1 and not 0
                 if(tvShow.getCurrent_episode() == 0 && tvShow.getCurrent_season() == 0) {
                     currentEpisode = 1 + tvShow.getCurrent_episode();
                     currentSeason = 1 + tvShow.getCurrent_season();
@@ -98,20 +91,20 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
                 }
                 final int[] finalCurrentEpisode = {currentEpisode};
                 final int[] finalCurrentSeason = {currentSeason};
+                // getting the episode by the way we saved him in the hashmap
                 Episode episode = episodes.get(String.valueOf(currentSeason * 10000 + currentEpisode));
 
-
+                // shows episode information
                 holder.current_episode_name.setText(episode.getName());
-                holder.current_episode_number.setText(episode.getSeason_number() + "x" + episode.getEpisode_number());
-                holder.item_release_Date.setText(episode.getAir_date());
-                holder.item_duration.setText(episode.getRuntime());
-                holder.item_rating.setText(String.valueOf(episode.getVote_average()));
-                holder.item_summary.setText(episode.getOverview());
+                holder.current_episode_number.setText("episode: " + episode.getSeason_number() + "x" + episode.getEpisode_number());
+                holder.item_release_Date.setText("release date: " +episode.getAir_date());
+                holder.item_duration.setText("runtime: " +episode.getRuntime() + " minutes");
+                holder.item_rating.setText("rating: " + String.valueOf(episode.getVote_average()));
+                holder.item_summary.setText("overview: "+ episode.getOverview());
                 holder.next_episode.setVisibility(View.VISIBLE);
-
                 holder.next_episode.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onClick(View v) {
+                    public void onClick(View v) { // getting the next episode number
                         updateEpisode("next", finalCurrentEpisode, finalCurrentSeason);
                         if(finalCurrentSeason[0] > tvShow.getNumber_of_seasons()){
                             tvShow.setCurrent_episode(0);
@@ -125,7 +118,7 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
                 holder.previous_episode.setVisibility(View.VISIBLE);
                 holder.previous_episode.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onClick(View v) {
+                    public void onClick(View v) { // getting the previous episode number
                         if(finalCurrentEpisode[0] > 1 || finalCurrentEpisode[0] > 1){
                         updateEpisode("previous", finalCurrentEpisode, finalCurrentSeason);
                             tvShow.setCurrent_episode(finalCurrentEpisode[0]);
@@ -135,21 +128,14 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
                     }
                 });
 
-
-
-
-
-
-
-                Log.d("TAG2", "saveToFirebase: check1");
+                // can press and check ro put in your list or not
                 holder.add_item.setOnCheckedChangeListener(null);
                 holder.add_item.setChecked(sharedViewModel.getSelectedTvShows().getValue().containsKey(tvShowKeys.get(position)));
-                Log.d("TAG2", "saveToFirebase: check2");
                 holder.add_item.setOnCheckedChangeListener((buttonView, isChecked) -> {
                     if (isChecked) {
-                        Log.d("TAG2", "saveToFirebase: check3");
+                        // add the show to the user list if added
                         sharedViewModel.addTvShow(tvShowKeys.get(position), tvShow);
-                        Log.d("TAG2", "saveToFirebase: check4");
+                        // remove the show from the user list if removed
                     } else {
                         sharedViewModel.removeTvShow(tvShowKeys.get(position));
                     }
@@ -158,12 +144,12 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
 
 
             }
-            else {
-
+            else {// if not in the user page and on the all footage then show the show details
+                holder.next_episode.setVisibility(View.INVISIBLE);
+                holder.previous_episode.setVisibility(View.INVISIBLE);
                 holder.item_release_Date.setText(tvShow.getFirst_air_date());
                 holder.item_duration.setText(tvShow.getDuration());
                 holder.item_rating.setText(String.valueOf(tvShow.getVote_average()));
-//                holder.item_genres.setText(String.join(", ", tvShow.getGenre_ids()));
                 holder.item_summary.setText(tvShow.getOverview());
                 Log.d("TAG2", "saveToFirebase: check1");
                 holder.add_item.setOnCheckedChangeListener(null);
@@ -171,9 +157,9 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
                 Log.d("TAG2", "saveToFirebase: check2");
                 holder.add_item.setOnCheckedChangeListener((buttonView, isChecked) -> {
                     if (isChecked) {
-                        Log.d("TAG2", "saveToFirebase: check3");
+                        // add the show to the user list if added
                         sharedViewModel.addTvShow(tvShowKeys.get(position), tvShow);
-                        Log.d("TAG2", "saveToFirebase: check4");
+                        // remove the show from the user list if removed
                     } else {
                         sharedViewModel.removeTvShow(tvShowKeys.get(position));
                     }
@@ -181,14 +167,17 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
             }
 
         } else {
+            // gets the movies form the list
             int moviePosition = position - tvShowKeys.size();
+
+            // sets the movie details on the footage card
             Movie movie = movies.get(movieKeys.get(moviePosition));
+
             Glide.with(holder.itemView.getContext()).load(movie.getPoster_path()).placeholder(R.drawable.ic_launcher_background).centerInside().into(holder.item_picture);
             holder.item_LBL_name.setText(movie.getTitle());
             holder.item_release_Date.setText(movie.getRelease_date());
             holder.item_duration.setText(movie.getRuntime());
             holder.item_rating.setText(String.valueOf(movie.getVote_average()));
-//            holder.item_genres.setText(String.join(", ", movie.getGenre_ids()));
             holder.previous_episode.setVisibility(View.INVISIBLE);
             holder.next_episode.setVisibility(View.INVISIBLE);
             holder.item_summary.setText(movie.getOverview());
@@ -196,8 +185,10 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
             holder.add_item.setChecked(sharedViewModel.getSelectedMovies().getValue().containsKey(movieKeys.get(moviePosition)));
             holder.add_item.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (isChecked) {
+                    // add the movie to the user list if added
                     sharedViewModel.addMovie(movieKeys.get(moviePosition), movie);
                 } else {
+                    // remove the show from the user list if removed
                     sharedViewModel.removeMovie(movieKeys.get(moviePosition));
                 }
             });
@@ -208,11 +199,8 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
 
     }
 
-    private void episodeCard(TvShow tvShow, @NonNull FootageViewHolder holder,int currentEpisode,int currentSeason, EpisodeUpdateCallback episodeUpdateCallback){
 
-
-    }
-
+    // calculate what is supposed to be the next episode
     private void updateEpisode(String type, int[] finalCurrentEpisode, int[] finalCurrentSeason) {
         if(Objects.equals(type, "next")) {
             if(finalCurrentEpisode[0] >= 10){
@@ -257,8 +245,8 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
         private final MaterialTextView item_rating;
         private final MaterialTextView item_summary;
         private final CheckBox add_item;
-        private final MaterialButton previous_episode;
-        private final MaterialButton next_episode;
+        private final FloatingActionButton previous_episode;
+        private final FloatingActionButton next_episode;
 
 
         public FootageViewHolder(@NonNull View itemView) {
@@ -278,14 +266,4 @@ public class FootageCard extends RecyclerView.Adapter<FootageCard.FootageViewHol
         }
     }
 
-    public Episode getWantedEpisode(HashMap<String, Episode> episodes, int wantedIndex) {
-        int index = 0;
-        for (Map.Entry<String, Episode> entry : episodes.entrySet()) {
-            if (index == wantedIndex) { // Index 2 corresponds to the third element
-                return entry.getValue(); // Return the third episode
-            }
-            index++;
-        }
-        return null; // Return null if there is no third episode
-    }
 }

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.watch_master.databinding.ActivityMainBinding;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
@@ -38,8 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton sign_out_button;
     private TextView userName;
     private TextView userMail;
-    private TextView listText;
-    private boolean isSignedIn;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home, R.id.nav_tv_shows, R.id.nav_movies, R.id.all_footage, R.id.sign_in)
+                R.id.nav_home, R.id.nav_tv_shows, R.id.nav_movies, R.id.all_footage)
                 .setOpenableLayout(drawer)
                 .build();
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
@@ -95,70 +96,56 @@ public class MainActivity extends AppCompatActivity {
         sign_in_button = binding.navView.getHeaderView(0).findViewById(R.id.sign_in_button);
         sign_out_button = binding.navView.getHeaderView(0).findViewById(R.id.sign_out_button);
         add_new_item = findViewById(R.id.add_new_item);
-        listText = findViewById(R.id.listText);
 
 
     }
 
     private void initViews() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if(user == null) {
-            isSignedIn = false;
 
+        // gets the user information
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if(user == null) {// if not connected
+            // show the button to sign
             sign_in_button.setVisibility(View.VISIBLE);
             sign_out_button.setVisibility(View.INVISIBLE);
-
+            // goes to the sign activity
             Intent signInIntent = new Intent(this, SignInActivity.class);
             sign_in_button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    //NavController navController = Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment_content_main);
-                    //navController.navigate(R.id.sign_in);
-
                     startActivity(signInIntent);
                 }
             });
         }
-
-
-        else {
-            isSignedIn = true;
-
-
+        else {// if connected
+            // show the sign out botton
             sign_in_button.setVisibility(View.INVISIBLE);
             sign_out_button.setVisibility(View.VISIBLE);
 
-            HomeFragment home = new HomeFragment();
-
-            if(home.isMoviesLoaded || home.isTvShowsLoaded)
-                listText.setVisibility(View.INVISIBLE);
-            else
-                listText.setVisibility(View.VISIBLE);
 
 
 
+            // goes to sign in activity to leave
             Intent signInIntent = new Intent(this, SignInActivity.class);
             sign_out_button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    //NavController navController = Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment_content_main);
-                    //navController.navigate(R.id.sign_in);
 
                     startActivity(signInIntent);
                 }
             });
 
-            if (user.getDisplayName() == null) {
+            // shows user information
+            if (user.getPhoneNumber() != null) {
                 userName.setText(user.getPhoneNumber());
             } else {
                 userName.setText(user.getDisplayName());
+                userMail.setText(user.getEmail());
             }
-
-            userMail.setText(user.getEmail());
         }
 
 
-
+        // only when user sign in can show the all footage
         binding.appBarMain.addNewItem.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -173,44 +160,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-
-
-
-
-
-
-        /*
-        FootageCard footageCard = new FootageCard(DataManager.getTvShows());
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
-        main_LST_items.setLayoutManager(linearLayoutManager);
-        main_LST_items.setAdapter(footageCard);
-
-
-         */
-
-        //add_new_item.setOnClickListener(v -> saveToFirebase());
-
-
-
-
-
     }
-
-
-/*
-
-    private void saveToFirebase(){
-        // Write a message to the database
-
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("footage");
-
-        myRef.setValue(DataManager.footageLibrary());
-        Log.d("TAG", "saveToFirebase: sasasa");
-    }
-
- */
-
 
 
 }

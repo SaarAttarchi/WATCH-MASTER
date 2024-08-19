@@ -5,16 +5,12 @@ import android.util.Log;
 import com.example.watch_master.interfaces.DataFetchCallback;
 import com.example.watch_master.interfaces.EpisodeFetchCallback;
 import com.example.watch_master.interfaces.TMDbApi;
-import com.example.watch_master.interfaces.TVMazeApi;
 import com.example.watch_master.interfaces.TvShowInfoCallback;
 import com.example.watch_master.models.Episode;
 import com.example.watch_master.models.Movie;
-import com.example.watch_master.models.Show;
 import com.example.watch_master.models.TvShow;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -24,39 +20,36 @@ import retrofit2.Response;
 public class DataManager {
 
 
-    public void allDta(DataFetchCallback callback){
+    public void allDta(String query, DataFetchCallback callback){
         HashMap<String, TvShow> tvShows = new HashMap<>();
         HashMap<String, Movie> movies = new HashMap<>();
 
-        fetchData(callback, "", tvShows, movies);
-
-        fetchMovies("",callback, movies, tvShows);
-
-
-
-
-
-
-
+        // getting all the tv shows from the data base
+        fetchTvShows(callback, "f0ebb740531fb478bbb5e6e413186700", tvShows, movies, query);
+        // getting all the movies from the data base
+        fetchMovies("f0ebb740531fb478bbb5e6e413186700",callback, movies, tvShows, query);
 
 
     }
 
+    // getting the right url every time and fetching the tv shows from the data base
+    // using a search query when needed
+    // creates a new tv show object to fetch that information
+    public void fetchTvShows(DataFetchCallback callback, String apiKey, HashMap<String, TvShow> tvShows, HashMap<String, Movie> movies, String query) {
+        for (int i = 0; i < 5; i++) { // set how many pages of information we want
+            TMDbApi apiService = ApiClient.getRetrofitInstance().create(TMDbApi.class);
+            Call<TvShowDiscoverResponse> tvShowCall;
+            if(query == null){
+                tvShowCall = apiService.searchTvShow(apiKey, i);
+            }
+            else{
+                tvShowCall = apiService.searchTvShowByName(apiKey, query, i);
+            }
 
-    public void fetchData(DataFetchCallback callback, String apiKey, HashMap<String, TvShow> tvShows, HashMap<String, Movie> movies) {
-        for (int i = 0; i < 5; i++) {
-
-            TMDbApi apiService = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
-            Call<TvShowDiscoverResponse> tvShowCall = apiService.searchTvShow(apiKey, i);
             Log.d("TAG", "Request URL: " + tvShowCall.request().url());
-
-
             tvShowCall.enqueue(new Callback<TvShowDiscoverResponse>() {
                 @Override
                 public void onResponse(Call<TvShowDiscoverResponse> call, Response<TvShowDiscoverResponse> response) {
-                    Log.d("TAG9", "shows onResponse:");
-                    String url1 = String.valueOf(tvShowCall.request().url());
-
 
                     if (response.isSuccessful() && response.body() != null) {
                         TvShowDiscoverResponse showResponses = response.body();
@@ -73,12 +66,12 @@ public class DataManager {
                             tvShows.put(String.valueOf(show.getId()), tvShow);
 
 
-                        fetchInfo(tvShow, apiKey, new TvShowInfoCallback() {
-                            @Override
-                            public void onInfoFetched(TvShow tvShow) {
+                            fetchInfo(tvShow, apiKey, new TvShowInfoCallback() {
+                                @Override
+                                public void onInfoFetched(TvShow tvShow) {
 
-                            }
-                        });
+                                }
+                            });
 
 
                             Log.d("TAG10", "shows onResponse:" + tvShow.getNumber_of_seasons());
@@ -109,8 +102,9 @@ public class DataManager {
         }
     }
 
+    // search in different URL in order to get more information about the show
     private void fetchInfo(TvShow tvShow, String apiKey, TvShowInfoCallback tvShowInfoCallback) {
-        TMDbApi apiService = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
+        TMDbApi apiService = ApiClient.getRetrofitInstance().create(TMDbApi.class);
         Call<TvShow> call = apiService.searchTvShowInfo(tvShow.getId(), apiKey);
         call.enqueue(new Callback<TvShow>() {
             @Override
@@ -121,6 +115,7 @@ public class DataManager {
                     // Set the number of seasons and episodes
                     tvShow.setNumber_of_seasons(tvShowResponse.getNumber_of_seasons());
                     tvShow.setNumber_of_episodes(tvShowResponse.getNumber_of_episodes());
+
 
                     if (tvShowInfoCallback != null) {
                         tvShowInfoCallback.onInfoFetched(tvShow);
@@ -137,7 +132,7 @@ public class DataManager {
 
     public void fetchEpisodes(TvShow tvShow, HashMap<String, Episode> tvShowEpisodes, String apiKey, EpisodeFetchCallback callBack) {
         // Fetch episodes for the show
-        TMDbApi apiService = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
+        TMDbApi apiService = ApiClient.getRetrofitInstance().create(TMDbApi.class);
 
         for (int i = 1; i <= 2; i++) {
             Call<EpisodeDiscoverResponse> episodeCall = apiService.searchTvShowEpisode(tvShow.getId(), i, apiKey);
@@ -147,18 +142,13 @@ public class DataManager {
             episodeCall.enqueue(new Callback<EpisodeDiscoverResponse>() {
                 @Override
                 public void onResponse(Call<EpisodeDiscoverResponse> call, Response<EpisodeDiscoverResponse> response) {
-                    Log.d("TAG9", "shows onResponse:");
-                    String url1 = String.valueOf(episodeCall.request().url());
-
 
                     if (response.isSuccessful() && response.body() != null) {
                         EpisodeDiscoverResponse episodeResponses = response.body();
 
-                        Log.d("TAG", "Episodes fetched: " + episodeResponses);
-
                         // Extract episodes
                         for (Episode episodeResponse : episodeResponses.getEpisodes()) {
-                            //String episodeKey = "S" + episodeResponse.getSeason_number() + "E" + episodeResponse.getEpisode_number();
+                            // save the episodes in an easy way we could get to
                             int episodeKey =  episodeResponse.getSeason_number() * 10000 + episodeResponse.getEpisode_number();
 
 
@@ -194,54 +184,6 @@ public class DataManager {
             });
         }
     }
-/*
-
-                    // Fetch movies after shows
-                // Replace with actual movie endpoint and query
-
-                Call<Movie> movieCall = apiService.getMovieDetails(500, "apikey");  // Adjust the API call method and parameters as needed
-                Log.d("TAG", "Request URL: " + movieCall.request().url());
-
-                movieCall.enqueue(new Callback<Movie>() {
-                    @Override
-                    public void onResponse(Call<Movie> call, Response<Movie> response) {
-                        Log.d("TAG", "Movies onResponse:");
-                        HashMap<String, Movie> movies = new HashMap<>();
-
-                        if (response.isSuccessful() && response.body() != null) {
-                            Movie movie = response.body();  // Adjust this based on your MovieResponse structure
-
-                            for (Movie tmdbMovie : movieResponses) {
-                                // Create a new Movie object
-                                Movie movie = new Movie()
-                                        .setId(tmdbMovie.getId())
-                                        .setName(tmdbMovie.getName())
-                                        .setSummary(tmdbMovie.getSummary())
-                                        .setReleaseDate(tmdbMovie.getReleaseDate())
-                                        .setRating(tmdbMovie.getRating())
-                                        .setGenre(tmdbMovie.getGenre())
-                                        .setPoster_path(tmdbMovie.getPosterPath());
-
-                                // Use the movie ID as the key
-                                movies.put(String.valueOf(tmdbMovie.getId()), movie);
-                                Log.d("TAG", "Movies onResponse:" + tmdbMovie.getName());
-                            }
-                        }
-
-                        // Pass both TV shows and movies to the callback
-                        if (callback != null) {
-                            callback.onDataFetched(tvShows, movies);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<MovieResponse> call, Throwable t) {
-
-                    }
-
-                });
-
- */
 
 
 
@@ -253,26 +195,30 @@ public class DataManager {
 
 
 
+    // getting the right url every time and fetching the tv shows from the data base
+    // using a search query when needed
+    // creates a new movie object to fetch that information
+    public void fetchMovies(String apiKey, DataFetchCallback callback, HashMap<String, Movie> movies, HashMap<String, TvShow> tvShows, String query) {
+        for (int i = 0; i < 10; i++) {// set how mny pages of information we want
 
+            TMDbApi apiService = ApiClient.getRetrofitInstance().create(TMDbApi.class);
+            Call<MovieDiscoverResponse> movieCall;
+            if(query == null){
+                movieCall = apiService.searchMovies(apiKey ,i);
+            }else{
+                movieCall = apiService.searchMoviesByName(apiKey, query,i);
+            }
 
-    public void fetchMovies(String apiKey, DataFetchCallback callback, HashMap<String, Movie> movies, HashMap<String, TvShow> tvShows) {
-        for (int i = 0; i < 10; i++) {
-
-            TMDbApi apiService = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
-            Call<MovieDiscoverResponse> movieCall = apiService.searchMovies(apiKey, i);
             Log.d("TAG", "Request URL for movies: " + movieCall.request().url());
 
             movieCall.enqueue(new Callback<MovieDiscoverResponse>() {
                 @Override
                 public void onResponse(Call<MovieDiscoverResponse> call, Response<MovieDiscoverResponse> response) {
-                    Log.d("TAG9", "Movies onResponse:");
-
 
                     if (response.isSuccessful() && response.body() != null) {
                         MovieDiscoverResponse moviesResponses = response.body();
 
                         for (Movie movie : moviesResponses.getResults()) {
-//                        Movie movie = movieResponse.getMovie();
                             Movie movieItem = new Movie()
                                     .setId(movie.getId())
                                     .setTitle(movie.getTitle())
@@ -284,7 +230,7 @@ public class DataManager {
                             movies.put(String.valueOf(movie.getId()), movieItem);
                             Log.d("TAG", "Movie: " + movie.getTitle());
                         }
-
+                        // using an interface to get all the all movies hashmaps
                         if (callback != null) {
                             callback.onDataFetched(tvShows, movies);
                         }
@@ -293,134 +239,10 @@ public class DataManager {
 
                 @Override
                 public void onFailure(Call<MovieDiscoverResponse> call, Throwable t) {
-                    Log.d("TAG", "Moviesdf;sjfl;kdsjflkdsjflds: ");
+
                 }
             });
         }
     }
 }
-
-/*
-    public static Footage footageLibrary(){
-        Footage footage = new Footage();
-
-        /*
-        footage.getTvShows().put("Game Of Thrones", new TvShow()
-                .setName("game of thrones")
-                .setEpisodeName("Home")
-                .setEpisodeNumber("6x02")
-                .setReleaseDate("01-05-2016")
-                .setDuration("57 minutes")
-                .setRating(8.6f)
-                .setGenre(new ArrayList<>(Arrays.asList("Comedy", "Family", "Fantasy")))
-
-        );
-
-
-
-
-
-        footage.getTvShows().put("breaking bad", new TvShow()
-                .setName("breaking bad")
-                .setEpisodeName("pilot")
-                .setEpisodeNumber("1x01")
-                .setReleaseDate("24-07-2008")
-                .setDuration("58 minutes")
-                .setRating(9.0f)
-                .setGenre(new ArrayList<>(Arrays.asList("Comedy", "Family", "Fantasy")))
-        );
-
-        footage.getTvShows().put("the clone wars", new TvShow()
-                .setName("the clone wars")
-                .setEpisodeName("pilot")
-                .setEpisodeNumber("1x01")
-                .setReleaseDate("24-07-2008")
-                .setDuration("10 minutes")
-                .setRating(9.0f)
-                .setGenre(new ArrayList<>(Arrays.asList("Comedy", "Family", "Fantasy")))
-        );
-        footage.getTvShows().put("avatar the last airbender", new TvShow()
-                .setName("avatar the last airbender")
-                .setEpisodeName("pilot")
-                .setEpisodeNumber("1x01")
-                .setReleaseDate("24-07-2008")
-                .setDuration("24 minutes")
-                .setRating(9.0f)
-                .setGenre(new ArrayList<>(Arrays.asList("Comedy", "Family", "Fantasy")))
-        );
-
-        footage.getTvShows().put("house of the dragon",new TvShow()
-                .setName("house of the dragon")
-                .setEpisodeName("pilot")
-                .setEpisodeNumber("1x01")
-                .setReleaseDate("24-07-2008")
-                .setDuration("58 minutes")
-                .setRating(9.0f)
-                .setGenre(new ArrayList<>(Arrays.asList("Comedy", "Family", "Fantasy")))
-        );
-
-        footage.getTvShows().put("the boys",new TvShow()
-                .setName("the boys")
-                .setEpisodeName("pilot")
-                .setEpisodeNumber("1x01")
-                .setReleaseDate("24-07-2008")
-                .setDuration("58 minutes")
-                .setRating(9.0f)
-                .setGenre(new ArrayList<>(Arrays.asList("Comedy", "Family", "Fantasy")))
-        );
-
-
-
-
-
-
-
-
-
-
-
-        footage.getMovies().put("Fight club", new Movie()
-                .setName("Fight club")
-                .setReleaseDate("16-11-1999")
-                .setDuration("139 minutes")
-                .setRating(8.8f)
-                .setGenre(new ArrayList<>(Collections.singletonList("Drama")))
-        );
-
-        footage.getMovies().put("Inception", new Movie()
-                .setName("Inception")
-                .setReleaseDate("22-07-2010")
-                .setDuration("148 minutes")
-                .setRating(8.8f)
-                .setGenre(new ArrayList<>(Arrays.asList("Action", "Adventure", "Sci-Fi")))
-        );
-
-        footage.getMovies().put("Forest Gump", new Movie()
-                .setName("Forest Gump")
-                .setReleaseDate("30-09-1994")
-                .setDuration("142 minutes")
-                .setRating(8.8f)
-                .setGenre(new ArrayList<>(Arrays.asList("Drama", "Romance")))
-        );
-
-        footage.getMovies().put("The Matrix", new Movie()
-                .setName("The Matrix")
-                .setReleaseDate("24-06-1999")
-                .setDuration("136 minutes")
-                .setRating(8.8f)
-                .setGenre(new ArrayList<>(Arrays.asList("Action", "Sci-Fi")))
-        );
-
-
-
-        Log.d("TAG", "saveToFirebase: sasasa");
-        return footage;
-    }
-    }
- */
-
-
-
-
-
 

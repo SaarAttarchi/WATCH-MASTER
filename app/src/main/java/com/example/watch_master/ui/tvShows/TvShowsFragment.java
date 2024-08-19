@@ -23,6 +23,7 @@ public class TvShowsFragment extends Fragment {
     private SharedViewModel sharedViewModel;
     private RecyclerView main_LST_items;
     private FootageCard footageCard;
+    private boolean isInAllFootage = false;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -38,11 +39,11 @@ public class TvShowsFragment extends Fragment {
         main_LST_items.setLayoutManager(new LinearLayoutManager(getContext()));
 
         // Set up the adapter with an empty list initially
-        footageCard = new FootageCard(sharedViewModel.getSelectedTvShows().getValue(), new HashMap<>(), sharedViewModel, 1); // Implement TvShowAdapter
+        footageCard = new FootageCard(sharedViewModel.getSelectedTvShows().getValue(), new HashMap<>(), sharedViewModel, isInAllFootage); // Implement TvShowAdapter
 
         main_LST_items.setAdapter(footageCard);
 
-
+        // sets the UI so it will show only the tv shows
         sharedViewModel.getSelectedTvShows().observe(getViewLifecycleOwner(), selectedTvShows  -> {
             // Update the RecyclerView when the data changes
             footageCard.setTvShows(selectedTvShows);

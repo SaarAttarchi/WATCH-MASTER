@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 
 public class TvShow {
-    public boolean isAdded;
     private int id;
     private String original_name;
     private String original_language;

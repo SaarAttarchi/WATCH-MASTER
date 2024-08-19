@@ -37,10 +37,10 @@ public class HomeFragment extends Fragment {
     private SharedViewModel sharedViewModel;
     private RecyclerView main_LST_items;
     private FootageCard footageCard;
+    private boolean isInAllFootage = false;
     public boolean isTvShowsLoaded = false;
     public boolean isMoviesLoaded = false;
     private boolean hasOpened = false;
-    private TextView listText;
 
 
 
@@ -51,35 +51,30 @@ public class HomeFragment extends Fragment {
         HomeViewModel homeViewModel =
                 new ViewModelProvider(this).get(HomeViewModel.class);
 
+        // creates a new sharedViewModel instance
         sharedViewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
 
         //text_home = text_home.findViewById(R.id.text_home);
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
         main_LST_items = binding.mainLSTItems;
-        listText = binding.listText;
         main_LST_items.setLayoutManager(new LinearLayoutManager(getContext()));
 
         // Set up the adapter with an empty list initially
-        footageCard = new FootageCard(new HashMap<>(), new HashMap<>(), sharedViewModel, 1);
-
+        footageCard = new FootageCard(new HashMap<>(), new HashMap<>(), sharedViewModel, isInAllFootage);
+        //sets the footageCard adapter
         main_LST_items.setAdapter(footageCard);
 
+        // ig opening the first time then go get the tv shows and movies hashmaps from the fire base
         if(!hasOpened) {
             FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
             if (user != null)
                 loadFirebaseData(user.getUid());
             hasOpened = true;
         }
-        else
+        else //if not then go get the data from the already loaded tv shows and movies
             checkDataLoaded(hasOpened);
 
-        if(sharedViewModel.getSelectedTvShows() == null && sharedViewModel.getSelectedMovies() == null ) {
-            listText.setVisibility(View.VISIBLE);
-            listText.setText("your watchlist is empty");
-        }
-        else
-            listText.setVisibility(View.INVISIBLE);
 
 
 
@@ -89,24 +84,28 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadFirebaseData(String userId) {
+        //  Get an instance of the Firebase database
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myRef = database.getReference("checked_footage").child(userId);
 
-        // Load TV shows
+        // Load TV shows the user's data in the "checked_footage" node
         myRef.child("tv_shows").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 HashMap<String, TvShow> tvShows = new HashMap<>();
+                // Iterate over each TV show in the snapshot
                 for (DataSnapshot tvShowSnapshot : snapshot.getChildren()) {
+                    // Convert the snapshot to a TvShow object
                     TvShow tvShow = tvShowSnapshot.getValue(TvShow.class);
                     if (tvShow != null) {
                         tvShows.put(tvShowSnapshot.getKey(), tvShow);
                     }
-                    Log.d("TAG999999", "Episode: " + tvShow.getEpisodes().get(String.valueOf(10001)).getName());
+                    Log.d("TAG", "Episode: " + tvShow.getEpisodes().get(String.valueOf(10001)).getName());
 
                     DatabaseReference myRefEpisode = database.getReference("checked_footage").child(userId).child("tv_shows").child(String.valueOf(tvShow.getId()));
-                    Log.d("TAG999999", "Fetching episodes for: " + tvShow.getOriginal_name());
+                    Log.d("TAG", "Fetching episodes for: " + tvShow.getOriginal_name());
 
+                    // Reference to the episodes of the current TV show
                     myRefEpisode.child("episodes").addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot episodeSnapshot) {
@@ -114,15 +113,14 @@ public class HomeFragment extends Fragment {
                             if (tvShowEpisodes == null) {
                                 tvShowEpisodes = new HashMap<>();
                             }
-                            Log.d("TAG999999", "Episode snapshot key: " + episodeSnapshot.getKey());
-                            Log.d("TAG999999", "Episode children count: " + episodeSnapshot.getChildrenCount());
+                            // Reference to the episodes of the current TV show
                             for (DataSnapshot episodeDataSnapshot : episodeSnapshot.getChildren()) {
                                 Episode episode = episodeDataSnapshot.getValue(Episode.class);
                                 if (episode != null) {
                                     tvShowEpisodes.put(episodeSnapshot.getKey(), episode);
                                     Log.d("TAG999999", "Episode: " + episode.getName());
                                 }
-                                Log.d("TAG999999", "Episode: " + episode.getName());
+
                             }
                             tvShow.setEpisodes(tvShowEpisodes);
                             Log.d("TAG7", "Episodes loaded " );
@@ -135,6 +133,7 @@ public class HomeFragment extends Fragment {
                     });
 
                 }
+                // Update the ViewModel with the loaded TV shows and observe changes to update the UI
                 sharedViewModel.setSelectedTvShows(tvShows);
                 sharedViewModel.getSelectedTvShows().observe(getViewLifecycleOwner(), selectedTvShows -> {
                     Log.e("TAG", "setting tv card cards" );
@@ -142,7 +141,6 @@ public class HomeFragment extends Fragment {
                     footageCard.notifyDataSetChanged();
                 });
                 isTvShowsLoaded = true;
-                //checkDataLoaded();
             }
 
             @Override
@@ -151,24 +149,26 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // Load Movies
+        // Load Movies data from Firebase
         myRef.child("movies").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 HashMap<String, Movie> movies = new HashMap<>();
+                // Iterate over each movie in the snapshot
                 for (DataSnapshot movieSnapshot : snapshot.getChildren()) {
+                    // Convert to Movie object
                     Movie movie = movieSnapshot.getValue(Movie.class);
                     if (movie != null) {
                         movies.put(movieSnapshot.getKey(), movie);
                     }
                 }
+                // Update the ViewModel with the loaded movies and observe changes to update the UI
                 sharedViewModel.setSelectedMovies(movies);
                 sharedViewModel.getSelectedMovies().observe(getViewLifecycleOwner(), selectedMovies -> {
                     footageCard.setMovies(selectedMovies);
                     footageCard.notifyDataSetChanged();
                 });
                 isMoviesLoaded = true;
-                //checkDataLoaded();
             }
 
             @Override
@@ -178,10 +178,10 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    // view the correct data on the cards and save the new data to firebase
     private void checkDataLoaded(boolean hasOpened) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
-        //if (isTvShowsLoaded && isMoviesLoaded) {
             // Observe changes to TV shows
             sharedViewModel.getSelectedTvShows().observe(getViewLifecycleOwner(), selectedTvShows -> {
                 Log.e("TAG", "setting fotage cards" );
@@ -196,7 +196,6 @@ public class HomeFragment extends Fragment {
                 footageCard.notifyDataSetChanged();
                 FirebaseDatabase.getInstance().getReference("checked_footage").child(user.getUid()).child("movies").setValue(selectedMovies);
             });
-        //}
     }
 
     @Override

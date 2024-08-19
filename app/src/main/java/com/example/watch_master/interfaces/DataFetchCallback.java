@@ -8,7 +8,5 @@ import java.util.HashMap;
 public interface DataFetchCallback {
     void onDataFetched(HashMap<String, TvShow> tvShows, HashMap<String, Movie> movies);
 
-    //void fetchedMovies(HashMap<String, Movie> movies);
-    //void fetchedTvShows(HashMap<String, TvShow> tvShows);
 
 }

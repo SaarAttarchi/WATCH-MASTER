@@ -15,6 +15,14 @@ public interface TMDbApi {
     @GET("/3/discover/tv")
     Call<TvShowDiscoverResponse> searchTvShow(@Query("api_key") String apiKey, @Query("page") int page);
 
+    // fetch tv shows after search
+    @GET("/3/search/tv")
+    Call<TvShowDiscoverResponse> searchTvShowByName(
+            @Query("api_key") String apiKey,
+            @Query("query") String query,
+            @Query("page") int page
+    );
+    // fetch more information about a tv show
     @GET("/3/tv/{tv_id}")
     Call<TvShow> searchTvShowInfo(@Path("tv_id") int showId, @Query("api_key") String apiKey);
 
@@ -31,5 +39,9 @@ public interface TMDbApi {
     // Fetch Movies
     @GET("/3/discover/movie")
     Call<MovieDiscoverResponse> searchMovies(@Query("api_key") String apiKey, @Query("page") int page);
+
+    // fetch movies after search
+    @GET("/3/search/movie")
+    Call<MovieDiscoverResponse> searchMoviesByName(@Query("api_key") String apiKey,@Query("query") String query, @Query("page") int page);
 
 }

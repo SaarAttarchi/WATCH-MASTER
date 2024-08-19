@@ -40,6 +40,7 @@ public class SignInActivity extends AppCompatActivity {
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
+        // choose what the user need to do
         if(user == null)
             signIn();
         else
@@ -55,7 +56,7 @@ public class SignInActivity extends AppCompatActivity {
 
     }
 
-
+    // signing in
     private void signIn(){
         // Choose authentication providers
         List<AuthUI.IdpConfig> providers = Arrays.asList(
@@ -74,7 +75,7 @@ public class SignInActivity extends AppCompatActivity {
         IdpResponse response = result.getIdpResponse();
         if (result.getResultCode() == RESULT_OK) {
             // Successfully signed in
-            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser(); // if connected can go to the main
             goToMain();
 
             // ...
@@ -85,7 +86,7 @@ public class SignInActivity extends AppCompatActivity {
             // ...
         }
     }
-
+    // signing out
     private void signOut(){
 
         AuthUI.getInstance()

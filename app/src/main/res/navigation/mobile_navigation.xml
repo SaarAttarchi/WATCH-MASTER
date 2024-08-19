@@ -29,9 +29,4 @@
         android:label="ALL FOOTAGE"
         tools:layout="@layout/fragment_all_footage" />
 
-    <fragment
-        android:id="@+id/sign_in"
-        android:name="com.example.watch_master.AllFootageFragment"
-        android:label="SIGN IN"
-        tools:layout="@layout/fragment_sign_in" />
 </navigation>
