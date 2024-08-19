@@ -6,6 +6,7 @@ import com.example.watch_master.interfaces.DataFetchCallback;
 import com.example.watch_master.interfaces.EpisodeFetchCallback;
 import com.example.watch_master.interfaces.TMDbApi;
 import com.example.watch_master.interfaces.TVMazeApi;
+import com.example.watch_master.interfaces.TvShowInfoCallback;
 import com.example.watch_master.models.Episode;
 import com.example.watch_master.models.Movie;
 import com.example.watch_master.models.Show;
@@ -33,10 +34,6 @@ public class DataManager {
 
 
 
-        //fetchData(callback, "breaking bad","https://static.tvmaze.com/uploads/images/medium_portrait/501/1253519.jpg", tvShows, movies);
-        //fetchData(callback, "house of the dragon","https://static.tvmaze.com/uploads/images/medium_portrait/530/1325279.jpg", tvShows, movies);
-        //fetchData(callback, "The Boys","https://static.tvmaze.com/uploads/images/medium_portrait/528/1321349.jpg", tvShows, movies);
-        //fetchData(callback, "Avatar: The Last Airbender ","https://static.tvmaze.com/uploads/images/medium_portrait/79/199224.jpg", tvShows, movies);
 
 
 
@@ -47,63 +44,103 @@ public class DataManager {
 
 
     public void fetchData(DataFetchCallback callback, String apiKey, HashMap<String, TvShow> tvShows, HashMap<String, Movie> movies) {
-        TMDbApi apiService2 = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
-        Call<TvShowDiscoverResponse> tvShowCall = apiService2.searchTvShow(apiKey);
-        Log.d("TAG", "Request URL: " + tvShowCall.request().url());
+        for (int i = 0; i < 5; i++) {
+
+            TMDbApi apiService = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
+            Call<TvShowDiscoverResponse> tvShowCall = apiService.searchTvShow(apiKey, i);
+            Log.d("TAG", "Request URL: " + tvShowCall.request().url());
 
 
+            tvShowCall.enqueue(new Callback<TvShowDiscoverResponse>() {
+                @Override
+                public void onResponse(Call<TvShowDiscoverResponse> call, Response<TvShowDiscoverResponse> response) {
+                    Log.d("TAG9", "shows onResponse:");
+                    String url1 = String.valueOf(tvShowCall.request().url());
 
-        tvShowCall.enqueue(new Callback<TvShowDiscoverResponse>() {
-            @Override
-            public void onResponse(Call<TvShowDiscoverResponse> call, Response<TvShowDiscoverResponse> response) {
-                Log.d("TAG9", "shows onResponse:");
-                String url1 = String.valueOf(tvShowCall.request().url());
+
+                    if (response.isSuccessful() && response.body() != null) {
+                        TvShowDiscoverResponse showResponses = response.body();
+
+                        for (TvShow show : showResponses.getResults()) {
+                            TvShow tvShow = new TvShow()
+                                    .setId(show.getId())
+                                    .setOriginal_name(show.getOriginal_name())
+                                    .setOverview(show.getOverview())
+                                    .setFirst_air_date(show.getFirst_air_date())
+                                    .setPoster_path("https://image.tmdb.org/t/p/w500" + show.getPoster_path())
+                                    .setVote_average(show.getVote_average());// Ensure full URL handling for the image
+
+                            tvShows.put(String.valueOf(show.getId()), tvShow);
 
 
-                if (response.isSuccessful() && response.body() != null) {
-                    TvShowDiscoverResponse showResponses = response.body();
-
-                    for (TvShow show : showResponses.getResults()) {
-                        TvShow tvShow = new TvShow()
-                                .setId(show.getId())
-                                .setOriginal_name(show.getOriginal_name())
-                                .setOverview(show.getOverview())
-                                .setFirst_air_date(show.getFirst_air_date())
-                                .setPoster_path("https://image.tmdb.org/t/p/w500" + show.getPoster_path())
-                                .setVote_average(show.getVote_average());// Ensure full URL handling for the image
-
-                        tvShows.put(String.valueOf(show.getId()), tvShow);
-                        Log.d("TAG", "show: " + show.getOriginal_name());
-
-                        HashMap<String, Episode> tvShowEpisodes = new HashMap<>();
-
-                        fetchEpisodes(tvShow, tvShowEpisodes, apiKey, new EpisodeFetchCallback() {
+                        fetchInfo(tvShow, apiKey, new TvShowInfoCallback() {
                             @Override
-                            public void onEpisodesFetched(HashMap<String, Episode> episodes) {
-                                tvShow.setEpisodes(tvShowEpisodes);
+                            public void onInfoFetched(TvShow tvShow) {
+
                             }
                         });
-                    }
 
-                    if (callback != null) {
-                        callback.onDataFetched(tvShows, movies);
+
+                            Log.d("TAG10", "shows onResponse:" + tvShow.getNumber_of_seasons());
+                            Log.d("TAG10", "shows onResponse:" + tvShow.getNumber_of_episodes());
+                            Log.d("TAG", "show: " + show.getOriginal_name());
+
+                            HashMap<String, Episode> tvShowEpisodes = new HashMap<>();
+
+                            fetchEpisodes(tvShow, tvShowEpisodes, apiKey, new EpisodeFetchCallback() {
+                                @Override
+                                public void onEpisodesFetched(HashMap<String, Episode> episodes) {
+                                    tvShow.setEpisodes(tvShowEpisodes);
+                                }
+                            });
+                        }
+
+                        if (callback != null) {
+                            callback.onDataFetched(tvShows, movies);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<TvShowDiscoverResponse> call, Throwable t) {
+                    Log.d("TAG", "Moviesdf;sjfl;kdsjflkdsjflds: ");
+                }
+            });
+        }
+    }
+
+    private void fetchInfo(TvShow tvShow, String apiKey, TvShowInfoCallback tvShowInfoCallback) {
+        TMDbApi apiService = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
+        Call<TvShow> call = apiService.searchTvShowInfo(tvShow.getId(), apiKey);
+        call.enqueue(new Callback<TvShow>() {
+            @Override
+            public void onResponse(Call<TvShow> call, Response<TvShow> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    TvShow tvShowResponse = response.body();
+
+                    // Set the number of seasons and episodes
+                    tvShow.setNumber_of_seasons(tvShowResponse.getNumber_of_seasons());
+                    tvShow.setNumber_of_episodes(tvShowResponse.getNumber_of_episodes());
+
+                    if (tvShowInfoCallback != null) {
+                        tvShowInfoCallback.onInfoFetched(tvShow);
                     }
                 }
             }
 
             @Override
-            public void onFailure(Call<TvShowDiscoverResponse> call, Throwable t) {
-                Log.d("TAG", "Moviesdf;sjfl;kdsjflkdsjflds: " );
+            public void onFailure(Call<TvShow> call, Throwable t) {
+                // Handle failure
             }
         });
     }
 
     public void fetchEpisodes(TvShow tvShow, HashMap<String, Episode> tvShowEpisodes, String apiKey, EpisodeFetchCallback callBack) {
         // Fetch episodes for the show
-        TMDbApi apiService2 = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
+        TMDbApi apiService = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
 
         for (int i = 1; i <= 2; i++) {
-            Call<EpisodeDiscoverResponse> episodeCall = apiService2.searchTvShowEpisode(tvShow.getId(), i, apiKey);
+            Call<EpisodeDiscoverResponse> episodeCall = apiService.searchTvShowEpisode(tvShow.getId(), i, apiKey);
             Log.d("TAG", "Request URL: " + episodeCall.request().url());
 
 
@@ -218,46 +255,48 @@ public class DataManager {
 
 
 
-    public void fetchMovies(String apiKey, DataFetchCallback callback, HashMap<String, Movie> movies, HashMap<String, TvShow> tvShows){
+    public void fetchMovies(String apiKey, DataFetchCallback callback, HashMap<String, Movie> movies, HashMap<String, TvShow> tvShows) {
+        for (int i = 0; i < 10; i++) {
 
-        TMDbApi apiService2 = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
-        Call<MovieDiscoverResponse> movieCall = apiService2.searchMovies(apiKey);
-        Log.d("TAG", "Request URL for movies: " + movieCall.request().url());
+            TMDbApi apiService = ApiClient.getRetrofitInstanceMovie().create(TMDbApi.class);
+            Call<MovieDiscoverResponse> movieCall = apiService.searchMovies(apiKey, i);
+            Log.d("TAG", "Request URL for movies: " + movieCall.request().url());
 
-        movieCall.enqueue(new Callback<MovieDiscoverResponse>() {
-            @Override
-            public void onResponse(Call<MovieDiscoverResponse> call, Response<MovieDiscoverResponse> response) {
-                Log.d("TAG9", "Movies onResponse:");
+            movieCall.enqueue(new Callback<MovieDiscoverResponse>() {
+                @Override
+                public void onResponse(Call<MovieDiscoverResponse> call, Response<MovieDiscoverResponse> response) {
+                    Log.d("TAG9", "Movies onResponse:");
 
 
-                if (response.isSuccessful() && response.body() != null) {
-                    MovieDiscoverResponse moviesResponses = response.body();
+                    if (response.isSuccessful() && response.body() != null) {
+                        MovieDiscoverResponse moviesResponses = response.body();
 
-                    for (Movie movie : moviesResponses.getResults()) {
+                        for (Movie movie : moviesResponses.getResults()) {
 //                        Movie movie = movieResponse.getMovie();
-                        Movie movieItem = new Movie()
-                                .setId(movie.getId())
-                                .setTitle(movie.getTitle())
-                                .setOverview(movie.getOverview())
-                                .setRelease_date(movie.getRelease_date())
-                                .setPoster_path("https://image.tmdb.org/t/p/w500" + movie.getPoster_path())
-                                .setVote_average(movie.getVote_average());// Ensure full URL handling for the image
+                            Movie movieItem = new Movie()
+                                    .setId(movie.getId())
+                                    .setTitle(movie.getTitle())
+                                    .setOverview(movie.getOverview())
+                                    .setRelease_date(movie.getRelease_date())
+                                    .setPoster_path("https://image.tmdb.org/t/p/w500" + movie.getPoster_path())
+                                    .setVote_average(movie.getVote_average());// Ensure full URL handling for the image
 
-                        movies.put(String.valueOf(movie.getId()), movieItem);
-                        Log.d("TAG", "Movie: " + movie.getTitle());
-                    }
+                            movies.put(String.valueOf(movie.getId()), movieItem);
+                            Log.d("TAG", "Movie: " + movie.getTitle());
+                        }
 
-                    if (callback != null) {
-                        callback.onDataFetched(tvShows, movies);
+                        if (callback != null) {
+                            callback.onDataFetched(tvShows, movies);
+                        }
                     }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<MovieDiscoverResponse> call, Throwable t) {
-                Log.d("TAG", "Moviesdf;sjfl;kdsjflkdsjflds: " );
-            }
-        });
+                @Override
+                public void onFailure(Call<MovieDiscoverResponse> call, Throwable t) {
+                    Log.d("TAG", "Moviesdf;sjfl;kdsjflkdsjflds: ");
+                }
+            });
+        }
     }
 }
 

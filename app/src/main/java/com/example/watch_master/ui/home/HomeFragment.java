@@ -36,10 +36,12 @@ public class HomeFragment extends Fragment {
     private FragmentHomeBinding binding;
     private SharedViewModel sharedViewModel;
     private RecyclerView main_LST_items;
-    private TextView listText;
     private FootageCard footageCard;
-    private boolean isTvShowsLoaded = false;
-    private boolean isMoviesLoaded = false;
+    public boolean isTvShowsLoaded = false;
+    public boolean isMoviesLoaded = false;
+    private boolean hasOpened = false;
+    private TextView listText;
+
 
 
 
@@ -55,6 +57,7 @@ public class HomeFragment extends Fragment {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
         main_LST_items = binding.mainLSTItems;
+        listText = binding.listText;
         main_LST_items.setLayoutManager(new LinearLayoutManager(getContext()));
 
         // Set up the adapter with an empty list initially
@@ -62,14 +65,21 @@ public class HomeFragment extends Fragment {
 
         main_LST_items.setAdapter(footageCard);
 
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if(user != null)
-            loadFirebaseData(user.getUid());
+        if(!hasOpened) {
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null)
+                loadFirebaseData(user.getUid());
+            hasOpened = true;
+        }
+        else
+            checkDataLoaded(hasOpened);
 
-
-        //if(isTvShowsLoaded = false || isMoviesLoaded == false)
-        //listText.setText("your watchlist is empty");
-        checkDataLoaded();
+        if(sharedViewModel.getSelectedTvShows() == null && sharedViewModel.getSelectedMovies() == null ) {
+            listText.setVisibility(View.VISIBLE);
+            listText.setText("your watchlist is empty");
+        }
+        else
+            listText.setVisibility(View.INVISIBLE);
 
 
 
@@ -92,7 +102,7 @@ public class HomeFragment extends Fragment {
                     if (tvShow != null) {
                         tvShows.put(tvShowSnapshot.getKey(), tvShow);
                     }
-                    Log.d("TAG999999", "Episode: " + tvShow.getId());
+                    Log.d("TAG999999", "Episode: " + tvShow.getEpisodes().get(String.valueOf(10001)).getName());
 
                     DatabaseReference myRefEpisode = database.getReference("checked_footage").child(userId).child("tv_shows").child(String.valueOf(tvShow.getId()));
                     Log.d("TAG999999", "Fetching episodes for: " + tvShow.getOriginal_name());
@@ -100,7 +110,10 @@ public class HomeFragment extends Fragment {
                     myRefEpisode.child("episodes").addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot episodeSnapshot) {
-                            HashMap<String, Episode> tvShowEpisodes = new HashMap<>();
+                            HashMap<String, Episode> tvShowEpisodes = tvShow.getEpisodes();
+                            if (tvShowEpisodes == null) {
+                                tvShowEpisodes = new HashMap<>();
+                            }
                             Log.d("TAG999999", "Episode snapshot key: " + episodeSnapshot.getKey());
                             Log.d("TAG999999", "Episode children count: " + episodeSnapshot.getChildrenCount());
                             for (DataSnapshot episodeDataSnapshot : episodeSnapshot.getChildren()) {
@@ -123,8 +136,13 @@ public class HomeFragment extends Fragment {
 
                 }
                 sharedViewModel.setSelectedTvShows(tvShows);
+                sharedViewModel.getSelectedTvShows().observe(getViewLifecycleOwner(), selectedTvShows -> {
+                    Log.e("TAG", "setting tv card cards" );
+                    footageCard.setTvShows(selectedTvShows);
+                    footageCard.notifyDataSetChanged();
+                });
                 isTvShowsLoaded = true;
-                checkDataLoaded();
+                //checkDataLoaded();
             }
 
             @Override
@@ -145,8 +163,12 @@ public class HomeFragment extends Fragment {
                     }
                 }
                 sharedViewModel.setSelectedMovies(movies);
+                sharedViewModel.getSelectedMovies().observe(getViewLifecycleOwner(), selectedMovies -> {
+                    footageCard.setMovies(selectedMovies);
+                    footageCard.notifyDataSetChanged();
+                });
                 isMoviesLoaded = true;
-                checkDataLoaded();
+                //checkDataLoaded();
             }
 
             @Override
@@ -156,12 +178,13 @@ public class HomeFragment extends Fragment {
         });
     }
 
-    private void checkDataLoaded() {
+    private void checkDataLoaded(boolean hasOpened) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
-        if (isTvShowsLoaded && isMoviesLoaded) {
+        //if (isTvShowsLoaded && isMoviesLoaded) {
             // Observe changes to TV shows
             sharedViewModel.getSelectedTvShows().observe(getViewLifecycleOwner(), selectedTvShows -> {
+                Log.e("TAG", "setting fotage cards" );
                 footageCard.setTvShows(selectedTvShows);
                 footageCard.notifyDataSetChanged();
                 FirebaseDatabase.getInstance().getReference("checked_footage").child(user.getUid()).child("tv_shows").setValue(selectedTvShows);
@@ -173,7 +196,7 @@ public class HomeFragment extends Fragment {
                 footageCard.notifyDataSetChanged();
                 FirebaseDatabase.getInstance().getReference("checked_footage").child(user.getUid()).child("movies").setValue(selectedMovies);
             });
-        }
+        //}
     }
 
     @Override

@@ -9,6 +9,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.watch_master.DataManager.DataManager;
+import com.example.watch_master.ui.home.HomeFragment;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 
@@ -123,8 +124,18 @@ public class MainActivity extends AppCompatActivity {
         else {
             isSignedIn = true;
 
+
             sign_in_button.setVisibility(View.INVISIBLE);
             sign_out_button.setVisibility(View.VISIBLE);
+
+            HomeFragment home = new HomeFragment();
+
+            if(home.isMoviesLoaded || home.isTvShowsLoaded)
+                listText.setVisibility(View.INVISIBLE);
+            else
+                listText.setVisibility(View.VISIBLE);
+
+
 
             Intent signInIntent = new Intent(this, SignInActivity.class);
             sign_out_button.setOnClickListener(new View.OnClickListener() {

@@ -16,6 +16,10 @@ public class TvShow {
     private String first_air_date;
     private String duration;
     private String vote_average;
+    private int number_of_seasons;
+    private int number_of_episodes;
+    private int current_episode;
+    private int current_season;
     private ArrayList<String> genre_ids = null;
     private HashMap<String, Episode> episodes = new HashMap<>();
 
@@ -110,6 +114,42 @@ public class TvShow {
 
     public TvShow setVote_average(String vote_average) {
         this.vote_average = vote_average;
+        return this;
+    }
+
+    public int getNumber_of_seasons() {
+        return number_of_seasons;
+    }
+
+    public TvShow setNumber_of_seasons(int number_of_seasons) {
+        this.number_of_seasons = number_of_seasons;
+        return this;
+    }
+
+    public int getNumber_of_episodes() {
+        return number_of_episodes;
+    }
+
+    public TvShow setNumber_of_episodes(int number_of_episodes) {
+        this.number_of_episodes = number_of_episodes;
+        return this;
+    }
+
+    public int getCurrent_episode() {
+        return current_episode;
+    }
+
+    public TvShow setCurrent_episode(int current_episode) {
+        this.current_episode = current_episode;
+        return this;
+    }
+
+    public int getCurrent_season() {
+        return current_season;
+    }
+
+    public TvShow setCurrent_season(int current_season) {
+        this.current_season = current_season;
         return this;
     }
 
