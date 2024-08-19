@@ -25,9 +25,9 @@ public class DataManager {
         HashMap<String, Movie> movies = new HashMap<>();
 
         // getting all the tv shows from the data base
-        fetchTvShows(callback, "f0ebb740531fb478bbb5e6e413186700", tvShows, movies, query);
+        fetchTvShows(callback, "", tvShows, movies, query);
         // getting all the movies from the data base
-        fetchMovies("f0ebb740531fb478bbb5e6e413186700",callback, movies, tvShows, query);
+        fetchMovies("",callback, movies, tvShows, query);
 
 
     }
